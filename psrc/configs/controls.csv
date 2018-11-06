@@ -1,0 +1,14 @@
+target,geography,seed_table,importance,control_field,expression
+num_hh,block_group_id,households,1000000000,hh_bg_weight,(households.WGTP > 0) & (households.WGTP < np.inf)
+hh_size_1,block_group_id,households,5000,hh_size_1,households.NP == 1
+hh_size_2,block_group_id,households,5000,hh_size_2,households.NP == 2
+hh_size_3,block_group_id,households,5000,hh_size_3,households.NP == 3
+hh_size_4,block_group_id,households,5000,hh_size_4,households.NP == 4
+hh_size_5,block_group_id,households,5000,hh_size_5,households.NP == 5
+hh_size_6,block_group_id,households,5000,hh_size_6,households.NP == 6
+hh_size_7_plus,block_group_id,households,5000,hh_size_7_plus,households.NP > 6
+cars_none,block_group_id,households,5000,cars_none,households.VEH == 0
+cars_one,block_group_id,households,5000,cars_one,households.VEH == 1
+cars_two_or_more,block_group_id,households,5000,cars_two_or_more,households.VEH > 2
+male,block_group_id,persons,5000,male,persons.SEX == 1
+female,block_group_id,persons,5000,female,persons.SEX<>1
