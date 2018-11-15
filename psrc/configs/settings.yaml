@@ -31,7 +31,7 @@ trace_geography:
   
 # Data Directory
 # ------------------------------------------------------------------
-data_dir: R:/SyntheticPopulation_2018/populationsim_inputs
+data_dir: R:/SyntheticPopulation_2018/populationsim_inputs/data
 
 
 # Input Data Tables

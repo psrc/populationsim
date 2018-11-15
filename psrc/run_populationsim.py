@@ -1,7 +1,7 @@
 import os
 import logging
-os.chdir(r'D:\stefan\population_sim\populationsim\psrc')
-os.sys.path.append(r'D:\stefan\population_sim\populationsim')
+#os.chdir(r'D:\stefan\population_sim\populationsim_psrc_fork\populationsim\psrc')
+#os.sys.path.append(r'D:\stefan\population_sim\populationsim_psrc_fork\populationsim')
 
 from activitysim.core import inject_defaults
 from populationsim import steps
