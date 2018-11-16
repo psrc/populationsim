@@ -12,3 +12,9 @@ cars_one,block_group_id,households,5000,cars_one,households.VEH == 1
 cars_two_or_more,block_group_id,households,5000,cars_two_or_more,households.VEH > 2
 male,block_group_id,persons,5000,male,persons.SEX == 1
 female,block_group_id,persons,5000,female,persons.SEX<>1
+workers_0,block_group_id,households,5000,workers_0,households.WIF == 0
+workers_1,block_group_id,households,5000,workers_1,households.WIF == 1
+workers_2,block_group_id,households,5000,workers_2,households.WIF == 2
+workers_3_PLUS,block_group_id,households,5000,workers_3_PLUS,households.WIF == 3
+school_yes,block_group_id,persons,5000,school_yes,persons.SCH <> 1
+school_no,block_group_id,persons,5000,school_no,persons.SCH == 1
