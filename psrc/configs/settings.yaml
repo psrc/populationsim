@@ -49,7 +49,7 @@ input_table_list:
     # expression_filename: seed_persons_expressions.csv
     filename : seed_persons.csv
     column_map:
-      # SERIALNO: hh_id
+      #SERIALNO: hh_id
       hhnum: hh_id
       #SPORDER: per_num
     # drop mixed type fields that appear to have been incorrectly generated

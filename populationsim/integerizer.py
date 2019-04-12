@@ -153,7 +153,7 @@ class Integerizer(object):
         if (resid_weights == 0.0).any():
             # not sure this matters...
             logger.warn("Integerizer: %s zero resid_weights" % ((resid_weights == 0).sum(),))
-            assert False
+            #assert False
 
         integerizer_func = get_single_integerizer()
 

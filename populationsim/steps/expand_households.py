@@ -73,9 +73,10 @@ def expand_households():
             hh_ids = group_hh_probs[group_id][HH_IDS]
             hh_probs = group_hh_probs[group_id][HH_PROBS]
             return np.random.choice(hh_ids, p=hh_probs)
+        #expanded_weights[household_id_col] = \
+        #    expanded_weights.group_id.astype(int).apply(chooser, convert_dtype=True,)
         expanded_weights[household_id_col] = \
             expanded_weights.group_id.astype(int).apply(chooser, convert_dtype=True,)
-
         # FIXME - omit in production?
         del expanded_weights['group_id']
         del expanded_weights['integer_weight']
