@@ -1,6 +1,6 @@
 import os
 import logging
-os.chdir(r'C:\users\brice\populationsim\psrc')
+os.chdir(r'C:\users\brice\populationsim\psrc_group_quarters')
 os.sys.path.append(r'C:\users\brice\populationsim')
 
 from activitysim.core import inject_defaults

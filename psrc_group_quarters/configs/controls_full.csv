@@ -1,0 +1,21 @@
+target,geography,seed_table,importance,control_field,expression
+puma_tot_gq_hh,block_group_id,households,1.00E+09,GQ2018_hh,households.weight_hh>0
+puma_tot_gq_pop,block_group_id,persons,1.00E+09,GQ2018_pop,persons.weight_person>0
+male,block_group_id,persons,5000,male,persons.SEX==1
+female,block_group_id,persons,5000,female,persons.SEX<>1
+age_0_17,block_group_id,persons,5000,age_0_17,persons['AGEP'] < 18
+age_18_24,block_group_id,persons,5000,age_18_24,(persons['AGEP'] <25) & (persons['AGEP'] >= 18)
+age_25_34,block_group_id,persons,5000,age_25_34,(persons['AGEP'] <35) & (persons['AGEP'] >= 25)
+age_35_45,block_group_id,persons,5000,age_35_45,(persons['AGEP'] <45) & (persons['AGEP'] >= 35)
+age_45_54,block_group_id,persons,5000,age_45_54,(persons['AGEP'] <55) & (persons['AGEP'] >=45)
+age_55_64,block_group_id,persons,5000,age_55_64,(persons['AGEP'] <65) & (persons['AGEP'] >= 55)
+age_65_74,block_group_id,persons,5000,age_65_74,(persons['AGEP'] <75) & (persons['AGEP'] >= 65)
+age_over_75,block_group_id,persons,5000,age_over_75,persons['AGEP'] > 75
+inc_under_10,block_group_id,persons,5000,inc_under_10,persons['PINCP'] < 10000
+inc_10_25,block_group_id,persons,5000,inc_10_25,(persons['PINCP'] < 25000) & (persons['PINCP'] >= 10000)
+inc_25_50,block_group_id,persons,5000,inc_25_50,(persons['PINCP'] < 50000) & (persons['PINCP'] >= 25000)
+inc_over_50,block_group_id,persons,5000,inc_over_50,persons['PINCP'] >= 50000
+nonworker,block_group_id,persons,5000,nonworker,persons['COW'] != 9
+worker,block_group_id,persons,5000,worker,persons['COW'] == 9
+student,block_group_id,persons,5000,student,"persons['SCH'].isin([2,3])"
+nonstudent,block_group_id,persons,5000,nonstudent,persons['SCH'] == 1
