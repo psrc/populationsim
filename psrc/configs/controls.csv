@@ -31,4 +31,3 @@ income_gt30-lt60,block_group_id,households,5000,income_gt30-lt60,(households.HIN
 income_gt60-lt100,block_group_id,households,5000,income_gt60-lt100,(households.HINCP > 60000) & (households.HINCP <= 100000)
 income_gt100,block_group_id,households,5000,income_gt100,households.HINCP > 100000
 is_worker,block_group_id,persons,5000,is_worker,persons.is_worker == 1
-non_worker,block_group_id,persons,5000,non_worker,persons.non_worker == 1

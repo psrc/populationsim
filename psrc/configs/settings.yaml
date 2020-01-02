@@ -31,7 +31,7 @@ trace_geography:
   
 # Data Directory
 # ------------------------------------------------------------------
-data_dir: R:/SyntheticPopulation_2018/populationsim_inputs/data
+data_dir: R:/e2projects_two/SyntheticPopulation_2018/populationsim_inputs/data
 
 
 # Input Data Tables
@@ -67,7 +67,7 @@ input_table_list:
    # column_map:
    #   TRACTCE: TRACT
   - tablename: block_group_id_control_data
-    filename : control_totals_block_group.csv
+    filename : ofm_controls_2018.csv
   #- tablename: TRACT_control_data
   #  filename : control_totals_tract.csv
   #- tablename: REGION_control_data
