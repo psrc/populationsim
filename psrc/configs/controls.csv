@@ -16,7 +16,7 @@ female,block_group_id,persons,5000,female,persons.SEX!=1
 workers_0,block_group_id,households,5000,workers_0,households.worker_count == 0
 workers_1,block_group_id,households,5000,workers_1,households.worker_count == 1
 workers_2,block_group_id,households,5000,workers_2,households.worker_count == 2
-workers_3_plus,block_group_id,households,5000,workers_3_plus,households.worker_count == 3
+workers_3_plus,block_group_id,households,5000,workers_3_plus,households.worker_count >= 3
 school_yes,block_group_id,persons,5000,school_yes,"persons.SCH.isin([2,3])"
 school_no,block_group_id,persons,5000,school_no,(persons.SCH != 2) & (persons.SCH != 3)
 is_family,block_group_id,households,5000,is_family,(households.HHT > 0) & (households.HHT <= 3)

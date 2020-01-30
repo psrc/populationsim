@@ -1,3 +1,31 @@
+###################################################################################################################################
+# This script modifies populationsim outputs to more closely reach population control totals.
+# Populationsim can generally hit household targets with more accuracy than person controls.
+# In early testing, PSRC noted that while household targets were exactly met at a regional level,
+# population totals were low by about 1%. This script helps reduced that gap in populatation targets to 0.1% while 
+# maintaining or improving fit at the person and household level. 
+# 
+# This script modifies large households (size of 7+) within block groups, by removing or cloning individuals 
+# in those households until block group controls are met. Individuals (non-workers) from the large households are cloned or removed 
+# randomly from samples within the same block group. 
+# 
+# The results are stored in the standard output directory. The following two files should be used as the new synthetic population files"
+# - adjusted_synthetic_households.csv
+# - adjusted_synthetic_persons.csv
+# 
+# In addition to updating the synthetic records, the original PUMS samples are also updated to reflect these new altered households
+# New seed persons and households are provided, being pivoted off existing records, but with updated list of persons and household sizes
+# These files are available in the standard output directory as:
+# - adjsuted_seed_households.csv
+# - adjusted_seed_persons.csv 
+#
+# A list of cloned and removed persons is also available, though these are provided for reference and not required for further application. 
+#
+# Additionally, a summary (summary_adjusted.csv) compares the control versus the original population output as well as the new adjusted results
+# Run psrc\notebooks\adjusted_summary.ipynb for a visual summary of results
+#
+###################################################################################################################################
+
 import os
 import pandas as pd
 import numpy as np
@@ -11,8 +39,8 @@ input_dir = r'C:\Users\bnichols\Documents\populationsim\psrc\output'
 output_dir = r'C:\Users\bnichols\Documents\populationsim\psrc\output'
 
 # Original PUMS records 
-seed_hh = pd.read_csv(r'R:\e2projects_two\SyntheticPopulation_2018\populationsim_inputs\data\seed_households.csv')
-seed_persons = pd.read_csv(r'R:\e2projects_two\SyntheticPopulation_2018\populationsim_inputs\data\seed_persons.csv')
+df_old_per_seed = pd.read_csv(r'R:\e2projects_two\SyntheticPopulation_2018\populationsim_inputs\data\seed_persons.csv')
+df_old_hh_seed = pd.read_csv(r'R:\e2projects_two\SyntheticPopulation_2018\populationsim_inputs\data\seed_households.csv')
 
 def random_person(df):
     """ Return random value for length of a dataframe."""
@@ -266,94 +294,86 @@ clone_df_tot.to_csv(os.path.join(output_dir,'cloned_persons.csv'), index=False)
 modified_hh_id_list = df_adjusted[df_adjusted['clone'] == 1]['household_id'].unique()
 for hh in modified_hh_id_list:
     hhsize = len(df_adjusted[df_adjusted['household_id'] == hh])
-    df_adjusted.loc[df_adjusted['household_id'] == hh, 'new_per_num'] = range(1,hhsize+1)
-    df_adjusted['NP'] = hhsize
+    df_adjusted.loc[df_adjusted['household_id'] == hh, 'per_num'] = range(1,hhsize+1)
 
-############################################################
-# Build a new synthetic household file from the person file
-############################################################
-# Recalculate new household size and number of workers
-# These numbers should be the same if changes are kept to a threshold within the largest household bin and only non-worked cloned/removed.
+# Write the adjusted synthetic person records to file
+#df_adjusted.to_csv(os.path.join(output_dir,'adjusted_synthetic_persons.csv'), index=False)
 
-# Household size
-df_hh_adjusted = df_adjusted.groupby('household_id').count()[['hh_id']].reset_index()
-df_hh_adjusted.rename(columns={'hh_id':'NP_adjusted'}, inplace=True)
+##########################################################################################
+## Build a new (adjusted) synthetic household file from the adjusted synthetic person file
+##########################################################################################
+
+# To calculate the new household size fields, group by household_id (the unique ID generated for synthetic pop records)
+df_hh_adjusted = df_adjusted.groupby('household_id').count()[['block_group_id']].reset_index()
+df_hh_adjusted.rename(columns={'block_group_id':'NP_adjusted'}, inplace=True)
 df_hh_adjusted = df_hh_adjusted.merge(df_hh, on='household_id', how='left')
 
-# Number of workers
-_df = df_adjusted.groupby('household_id').sum()[['is_worker']].reset_index()
-_df.rename(columns={'is_worker': 'worker_count'}, inplace=True)
-# drop old columns of worker count from df_hh_adjusted
-df_hh_adjusted.drop('worker_count', axis=1, inplace=True)
-df_hh_adjusted = df_hh_adjusted.merge(_df, on='household_id', how='left')
+# Find adjusted records by comparing NP and NP_adjusted
+altered_household_df = df_hh_adjusted[df_hh_adjusted['NP'] != df_hh_adjusted['NP_adjusted']]
 
-# Write results to file
-df_adjusted.to_csv(os.path.join(output_dir,'adjusted_synthetic_persons.csv'), index=False)
-df_hh_adjusted.to_csv(os.path.join(output_dir,'adjusted_synthetic_households.csv'), index=False)
+# List of household_ids (unique to synthetic population outputs) that have been adjusted
+altered_household_list = list(altered_household_df['household_id'].unique())
 
-# Generate summary of the adjusted synthetic household and population file
+# Add a new hh_id field, since these are going to be added as new households
+new_id_list = range(df_hh_adjusted['hh_id'].max()+1,df_hh_adjusted['hh_id'].max()+len(altered_household_df)+1)
+altered_household_df['new_pums_hh_id'] = new_id_list
+
+# Create new household PUMS samples for the altered households
+# Join to original household samples to update NP and new ID
+df = altered_household_df[['hh_id','NP_adjusted','new_pums_hh_id']].merge(df_old_hh_seed, left_on='hh_id', right_on='hhnum')
+df['hhnum'] = df['new_pums_hh_id']
+df.drop(['NP_adjusted','new_pums_hh_id','hh_id'], axis=1, inplace=True)
+
+# Append to original PUMS samples and write to file
+df = df_old_hh_seed.append(df)
+df.to_csv(os.path.join(output_dir,'adjusted_seed_households.csv'), index=False)
+
+# Write the adjusted synthetic population record to file
+_df = df_hh_adjusted.copy()
+_df = _df.merge(altered_household_df[['household_id','new_pums_hh_id']], on='household_id', how='left')
+_df['hh_id'] = _df['new_pums_hh_id'].fillna(_df['hh_id'])
+_df.to_csv(os.path.join(output_dir,'adjusted_synthetic_households.csv'), index=False)
+
+###########################################################################
+# Update adjusted person synthetic population and person-level PUMS samples
+###########################################################################
+
+# Select all adjusted synthetic person records within the altered_household_list
+altered_person_df = df_adjusted[df_adjusted['household_id'].isin(altered_household_list)]
+
+# Join with altered_household_df to get the correct, update NP value; drop NP before merge
+altered_person_df.drop('NP', axis=1, inplace=True)
+altered_person_df = altered_person_df.merge(altered_household_df[['household_id','new_pums_hh_id','NP_adjusted','NP']], 
+                                            on='household_id', suffixes=['_person','_hh'])
+
+# Rename "hh_id" for clarity; this is the hh_id from the person records, which will not 
+# necesarily match the hh_id from the household file. 
+# We want to use the hh_id from the person records for joining to PUMS samples
+# The newly generated new_pums_hh_id is to be used as the new hh_id 
+altered_person_df.rename(columns={'hh_id': 'original_person_pums_hh_id'}, inplace=True)
+
+# Attach original PUMS records to the adjusted person files
+altered_person_pums_df = altered_person_df[['original_person_pums_hh_id','new_pums_hh_id',
+                                            'per_num','NP','NP_adjusted']].merge(df_old_per_seed, 
+                                                                         left_on=['original_person_pums_hh_id','per_num'], 
+                                                                         right_on=['hhnum','SPORDER'])
+
+# Replace the original hhnum field with the new_pums_hh_id field
+altered_person_pums_df['hhnum'] = altered_person_pums_df['new_pums_hh_id']
+altered_person_pums_df.drop(['original_person_pums_hh_id','new_pums_hh_id','per_num','NP','NP_adjusted'],
+                            axis=1).to_csv(os.path.join(output_dir,'adjusted_seed_persons.csv'), index=False)
+
+
+# Update the recalculated NP and hhum value on the adjusted_synthetic_persons
+# join on the original_persons_pums_hh_id to synthetic persons
+df = df_adjusted.merge(altered_person_df[['household_id','new_pums_hh_id','per_num']], on=['household_id','per_num'], how='left')
+df['hh_id'] = df['new_pums_hh_id'].fillna(_df['hh_id'])
+# Update household size
+df = df.merge(df_hh_adjusted[['household_id','NP_adjusted']], on='household_id')
+df['NP'] = df['NP_adjusted']
+df.drop(['new_pums_hh_id','NP_adjusted'], axis=1)
+dfto_csv(os.path.join(output_dir,'adjusted_synthetic_households.csv'), index=False)
+
+## Generate summary of the adjusted synthetic household and population files
 df = create_summary(df_adjusted, df_hh_adjusted, df_summary)
 df.to_csv(os.path.join(output_dir,'summary_adjusted.csv'),index=False)
-
-#############################################
-# Update PUMS records with modified records
-#############################################
-# Cloned records will be considered new PUMS samples; 
-# Households that had households added or removed will be added as new HH PUMS samples 
-
-# Add unique person ID field based on household number and person number (SPORDER)
-seed_persons['seed_person_id'] = (seed_persons['hhnum'].astype('str')+seed_persons['SPORDER'].astype('str')).astype('int')
-
-# Get list of cloned persons to be added as new PUMS records
-cloned_df = df_adjusted[df_adjusted['clone'] == 1]
-
-# Select all persons from households that have been modified
-df = df_adjusted[df_adjusted['household_id'].isin(cloned_df['household_id'].values)]
-# For each group of persons in a household, assign a new hhid (prepended with 9999 to indicate the record is created)
-
-hhid_value = seed_persons['hhnum'].max()+1
-for hhid in df['household_id'].unique():
-    print(hhid)
-    _filter = df['household_id'] == hhid
-    df.loc[_filter,'new_PUMS_hhid'] = int('9999'+str(hhid_value))
-
-    # Update the NP field, using length of records for each household
-    df.loc[_filter,'new_NP'] = int(len(df[_filter]))
-
-    # Reset the per_num field as well
-    df.loc[_filter,'new_pernum'] = range(1,int(len(df[_filter])+1))
-
-    hhid_value += 1
-
-# Join with PUMS records to copy the existing rows and up create new rows with the new ID
-new_seed_persons = df[['hh_id','per_num','new_NP','new_PUMS_hhid','new_pernum','household_id']].merge(seed_persons, 
-                                                                                         left_on=['hh_id','per_num'], 
-                                                                                         right_on=['hhnum','SPORDER'], 
-                                                                                         how='left')
-
-# Update fields with new values
-new_seed_persons['NP'] = new_seed_persons['new_NP'].astype('int')
-new_seed_persons['hhnum'] = new_seed_persons['new_PUMS_hhid'].astype('int')
-new_seed_persons['SPORDER'] = new_seed_persons['new_pernum'].astype('int')
-new_seed_persons['adjusted'] = 1
-seed_persons['adjusted'] = 0
-
-## Update household file and write to disk
-# Copy household info based on the old hhnum
-df_hh = seed_hh[seed_hh['hhnum'].isin(new_seed_persons['hh_id'].unique())]
-hh_np_df = new_seed_persons.groupby('hh_id').first()[['NP']].reset_index()
-hh_np_df.drop('NP', axis=1, inplace=True)
-hh_adjusted = df_hh.merge(hh_np_df, left_on='hhnum', right_on='hh_id', how='left')
-
-# Add the new household ID (replace hhnum from new_seed_persons, using hh_id as the join column; hh_id is the original PUMS id)
-hh_adjusted = hh_adjusted.drop('hhnum', axis=1)
-hh_adjusted = hh_adjusted.merge(new_seed_persons[['hh_id','hhnum']], on='hh_id', how='left')
-
-# Append to original PUMS HH records and write to file
-hh_adjusted = seed_hh.append(hh_adjusted)
-hh_adjusted[seed_hh.columns].to_csv(os.path.join(output_dir,'adjusted_seed_households.csv'), index=False)
-
-# Append person records to existing PUMS records and write to file
-new_seed_persons = new_seed_persons[seed_persons.columns]
-new_seed_persons = seed_persons.append(new_seed_persons)
-new_seed_persons.to_csv(os.path.join(output_dir,'adjusted_seed_persons.csv'), index=True)
