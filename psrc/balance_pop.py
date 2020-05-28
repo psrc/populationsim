@@ -156,6 +156,9 @@ df_adjusted = df.copy()
 # Initialize status of whether row has been cloned
 df_adjusted['clone'] = 0
 
+# Get SPORDER field from PUMS data to sort on household head
+#df = df.merge(df_old_per_seed[['hhnum','SPORDER']],left_on=['hh_id','per_num'],right_on=['hhnum','SPORDER'])
+
 # Loop through each block group and add or removed cloned records to reach total population control total
 df_summary.index = df_summary.id
 counter = 1
@@ -165,9 +168,10 @@ removed_persons_df = pd.DataFrame()
 clone_df_tot = pd.DataFrame()
 
 for bg_id in df_summary.id:
+#for bg_id in [5333323271]:
     print(counter)
     counter += 1
-    
+
     # Use the difference between control and populationsim output as number of rows to add or remove
     diff = int(df_summary.loc[bg_id]['num_persons_diff'])
     
@@ -177,6 +181,9 @@ for bg_id in df_summary.id:
     threshold_hhsize = 7
     hh_to_modify = df_hh[(df_hh['block_group_id'] == bg_id) & (df_hh['NP'] >= threshold_hhsize)].sort_values('NP', ascending=False)['household_id'].values
     
+    # Set a maxmimum household size for which cloned records can be added. 
+    max_hh_size = df_hh['NP'].max()
+
     # If there are no households that meet the criteria (i.e., no household large enough to modify) skip to next block group
     if len(hh_to_modify) == 0:
         print ('skipping: '+str(bg_id))
@@ -196,24 +203,35 @@ for bg_id in df_summary.id:
         # 25 between the control total and initial result, each 7+ household will recieve 2 new synthetic records
         # and the 5 largest 7+ size households will receive an additional record. The new household
         # size of these households will then range from 9 to 10. 
+
+        # Ensure that no household is over maximum size after adding new records to households
+        # The number of records added will equal either this max value or the diff 
+        _df = df_hh[df_hh['household_id'].isin(hh_to_modify)]
+        _df['max_size'] = 20
+        _df['potential'] = _df['max_size'] - _df['NP']
+        # Max number of clones is either the potential before hitting max hh size or diff
+        max_clones = min(abs(diff), _df['potential'].sum())    
+        
+
         hh_add_clone_list = []
-        while len(hh_add_clone_list) < abs(diff):
-            len_to_add = abs(diff)-len(hh_add_clone_list)
+        while (len(hh_add_clone_list) < max_clones):
+            len_to_add = abs(max_clones)-len(hh_add_clone_list) 
             if len_to_add > len(hh_to_modify):
                 hh_add_clone_list += list(hh_to_modify)
             else:
                 hh_add_clone_list += list(hh_to_modify[0:len_to_add])
         
         # Generate a clone pool (list of potential records to copy from this block group)
-        # Only clone non-workers from the current block group to avoid altering worker distributions
-        df_clone_pool = df.loc[(df['block_group_id'] == bg_id) & (df['is_worker'] == 0)]
+        # Only clone non-workers and non-household-heads (per_num/SPORDER > 1) from the current block group 
+        # to avoid altering worker distributions
+        df_clone_pool = df.loc[(df['block_group_id'] == bg_id) & (df['is_worker'] == 0) & (df['per_num'] > 1)]
         if len(df_clone_pool) <= 0:    # skip this block group if no records are available to clone from
             print ('~skipping: '+str(bg_id))
             continue
 
         # Randomly select rows from the clone pool
         # These nonworker records are added randomly to the large households
-        clone_rows = [random_person(df_clone_pool) for i in range(abs(diff))]        
+        clone_rows = [random_person(df_clone_pool) for i in range(max_clones)]        
         clone_df = df_clone_pool.iloc[clone_rows]
       
         # Add a clone to all households with 7+ people by renaming the household_id of clone records and adding to original data
@@ -266,7 +284,7 @@ for bg_id in df_summary.id:
                 hh_to_shrink.append(int(row.household_id))
 
         # For each household, randomly remove a single (non-worker) person from the household
-        person_removal_pool = df[(df['household_id'].isin(hh_to_shrink)) & (df['is_worker'] == 0)]
+        person_removal_pool = df[(df['household_id'].isin(hh_to_shrink)) & (df['is_worker'] == 0) & (df['per_num'] > 1)]
 
         # Add a random col to sort values then remove record(s) with lowest value(s)
         person_removal_pool['random_val'] = [random_person(person_removal_pool) for i in range(len(person_removal_pool))]
@@ -276,7 +294,7 @@ for bg_id in df_summary.id:
         # Remove number of people from each household from 'repeat times' field
         removed_persons = []
         for hh in np.unique(hh_to_shrink):
-            print(hh)
+            #print(hh)
             _hh_df = _df[_df['household_id'] == hh]
             if len(_hh_df) != 0:    # Some households may not have enough nonworkers to remove; skip 
                 repeat_val = _hh_df['repeat_times'].min()
@@ -294,14 +312,16 @@ clone_df_tot.to_csv(os.path.join(output_dir,'cloned_persons.csv'), index=False)
 modified_hh_id_list = df_adjusted[df_adjusted['clone'] == 1]['household_id'].unique()
 for hh in modified_hh_id_list:
     hhsize = len(df_adjusted[df_adjusted['household_id'] == hh])
-    df_adjusted.loc[df_adjusted['household_id'] == hh, 'per_num'] = range(1,hhsize+1)
+    df_adjusted.loc[df_adjusted['household_id'] == hh, 'new_per_num'] = range(1,hhsize+1)
 
-# Write the adjusted synthetic person records to file
-#df_adjusted.to_csv(os.path.join(output_dir,'adjusted_synthetic_persons.csv'), index=False)
+ #Write the adjusted synthetic person records to file
+df_adjusted.to_csv(os.path.join(output_dir,'adjusted_synthetic_persons.csv'), index=False)
 
 ##########################################################################################
 ## Build a new (adjusted) synthetic household file from the adjusted synthetic person file
 ##########################################################################################
+
+#df_adjusted = pd.read_csv(os.path.join(output_dir,'adjusted_synthetic_persons.csv'))
 
 # To calculate the new household size fields, group by household_id (the unique ID generated for synthetic pop records)
 df_hh_adjusted = df_adjusted.groupby('household_id').count()[['block_group_id']].reset_index()
@@ -369,10 +389,10 @@ altered_person_pums_df.drop(['original_person_pums_hh_id','new_pums_hh_id','per_
 df = df_adjusted.merge(altered_person_df[['household_id','new_pums_hh_id','per_num']], on=['household_id','per_num'], how='left')
 df['hh_id'] = df['new_pums_hh_id'].fillna(_df['hh_id'])
 # Update household size
-df = df.merge(df_hh_adjusted[['household_id','NP_adjusted']], on='household_id')
-df['NP'] = df['NP_adjusted']
-df.drop(['new_pums_hh_id','NP_adjusted'], axis=1)
-dfto_csv(os.path.join(output_dir,'adjusted_synthetic_households.csv'), index=False)
+#df = df.merge(df_hh_adjusted[['household_id','NP_adjusted']], on='household_id')
+#df['NP'] = df['NP_adjusted']
+#df.drop(['new_pums_hh_id','NP_adjusted'], axis=1)
+#df.to_csv(os.path.join(output_dir,'adjusted_synthetic_persons_1.csv'), index=False)
 
 ## Generate summary of the adjusted synthetic household and population files
 df = create_summary(df_adjusted, df_hh_adjusted, df_summary)
