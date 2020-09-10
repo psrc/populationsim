@@ -1,6 +1,6 @@
 target,geography,seed_table,importance,control_field,expression
-num_hh,block_group_id,households,1.00E+09,hh_bg_weight,(households.WGTP > 0) & (households.WGTP < np.inf)
-num_persons,block_group_id,persons,1.00E+09,pers_bg_weight,persons.hh_id>0
+num_hh,block_group_id,households,1000000000,hh_bg_weight,(households.WGTP > 0) & (households.WGTP < np.inf)
+num_persons,block_group_id,persons,1000000000,pers_bg_weight,persons.hh_id>0
 hh_size_1,block_group_id,households,5000,hh_size_1,households.NP == 1
 hh_size_2,block_group_id,households,5000,hh_size_2,households.NP == 2
 hh_size_3,block_group_id,households,5000,hh_size_3,households.NP == 3
@@ -31,3 +31,6 @@ income_gt30-lt60,block_group_id,households,5000,income_gt30-lt60,(households.HIN
 income_gt60-lt100,block_group_id,households,5000,income_gt60-lt100,(households.HINCP > 60000) & (households.HINCP <= 100000)
 income_gt100,block_group_id,households,5000,income_gt100,households.HINCP > 100000
 is_worker,block_group_id,persons,5000,is_worker,persons.is_worker == 1
+white,block_group_id,persons,5000,white,persons.RAC1P == 1
+black,block_group_id,persons,5000,black,persons.RAC1P == 2
+other,block_group_id,persons,5000,other,persons.RAC1P > 2
