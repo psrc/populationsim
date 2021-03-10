@@ -1,6 +1,8 @@
 target,geography,seed_table,importance,control_field,expression
-num_hh,block_group_id,households,1000000000,hh_bg_weight,(households.WGTP > 0) & (households.WGTP < np.inf)
-num_persons,block_group_id,persons,1000000000,pers_bg_weight,persons.hh_id>0
+num_hh,block_group_id,households,1.00E+09,hh_bg_weight,(households.WGTP > 0) & (households.WGTP < np.inf)
+num_persons,block_group_id,persons,1.00E+09,pers_bg_weight,persons.hh_id>0
+hh_rent,block_group_id,households,5.00E+03,rent,households.TEN == 3
+hh_own,block_group_id,households,5.00E+03,own,households.TEN != 3
 hh_size_1,block_group_id,households,5000,hh_size_1,households.NP == 1
 hh_size_2,block_group_id,households,5000,hh_size_2,households.NP == 2
 hh_size_3,block_group_id,households,5000,hh_size_3,households.NP == 3
